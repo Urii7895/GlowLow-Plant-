@@ -8,8 +8,7 @@ import RegisterScreen from './Screens/RegisterScreen';
 import RecupContra from './Screens/RecupContra';
 import VincularMaceta from './Screens/VincularMaceta';
 import DashMoni from './Screens/DashMoni';
-import DescripcionScreen from './Screens/DescripcionScreen';
-import RachaScreen from './Screens/RachaScreen';
+
 
 
 
@@ -22,8 +21,6 @@ export type RootStackParamList = {
   RecupContra: undefined;
   VincularMaceta: undefined;
   DashMoni: undefined;
-  Descripcion: undefined;
-  Racha: undefined;
 }
 
 const app = () => {
@@ -35,8 +32,7 @@ const app = () => {
         <Stack.Screen name="RecupContra" component={RecupContra} />
         <Stack.Screen name="VincularMaceta" component={VincularMaceta} />
         <Stack.Screen name="DashMoni" component={DashMoni} />
-        <Stack.Screen name="Descripcion" component={DescripcionScreen} />
-        <Stack.Screen name="Racha" component={RachaScreen} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,22 +1,29 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { useNavigation, NavigationProp } from "@react-navigation/native";
+import { login } from "../api";
 
-// Definición del tipo de navegación
 type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   RecupContra: undefined;
   DashMoni: undefined;
-  VincularMaceta: undefined; // Agregar VincularMaceta
+  VincularMaceta: undefined;
 };
 
 const LoginScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
-    Alert.alert('VincularMaceta', 'Inicio de sesión exitoso');
-    navigation.navigate('VincularMaceta'); // Navegar a VincularMaceta
+  const handleLogin = async () => {
+    try {
+      const data = await login(email, password);
+      Alert.alert("Éxito", `Bienvenido ${data.usuario.nombre}`);
+      navigation.navigate("VincularMaceta");
+    } catch (error: any) {
+      Alert.alert("Error", error.response?.data?.message || "Algo salió mal");
+    }
   };
 
   return (
@@ -29,21 +36,25 @@ const LoginScreen = () => {
           style={styles.input}
           keyboardType="email-address"
           autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
         />
         <TextInput
           placeholder="Contraseña"
           placeholderTextColor="#aaa"
           style={styles.input}
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Iniciar Sesión</Text>
         </TouchableOpacity>
         <View style={styles.footerLinks}>
-          <TouchableOpacity onPress={() => navigation.navigate('RecupContra')}>
+          <TouchableOpacity onPress={() => navigation.navigate("RecupContra")}>
             <Text style={styles.linkText}>¿Olvidó su contraseña?</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <TouchableOpacity onPress={() => navigation.navigate("Register")}>
             <Text style={styles.linkText}>Crear cuenta</Text>
           </TouchableOpacity>
         </View>
@@ -55,60 +66,60 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FDF6EC',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#E6E6FA",
     padding: 20,
   },
   title: {
     fontSize: 36,
-    color: '#00A86B',
+    color: "#6C5B7B",
     marginBottom: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 20,
     borderRadius: 10,
-    width: '100%',
+    width: "100%",
     maxWidth: 340,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
   },
   input: {
-    width: '100%',
-    backgroundColor: '#F0F0F0',
-    color: '#000',
+    width: "100%",
+    backgroundColor: "#F0F0F0",
+    color: "#000",
     padding: 12,
     borderRadius: 8,
     marginBottom: 15,
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#007BFF',
+    backgroundColor: "#80CB",
     paddingVertical: 12,
     paddingHorizontal: 40,
     borderRadius: 8,
     marginBottom: 15,
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   footerLinks: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
   },
   linkText: {
-    color: '#007BFF',
+    color: "#424242",
     fontSize: 14,
   },
 });
