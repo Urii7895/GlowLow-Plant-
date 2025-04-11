@@ -6,7 +6,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from './Screens/LoginScreen';
 import RegisterScreen from './Screens/RegisterScreen';
 import RecupContra from './Screens/RecupContra';
-import VincularMaceta from './Screens/VincularMaceta';
 import DashMoni from './Screens/DashMoni';
 
 
@@ -30,7 +29,6 @@ const app = () => {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="RecupContra" component={RecupContra} />
-        <Stack.Screen name="VincularMaceta" component={VincularMaceta} />
         <Stack.Screen name="DashMoni" component={DashMoni} />
 
       </Stack.Navigator>

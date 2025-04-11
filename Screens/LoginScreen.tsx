@@ -20,7 +20,7 @@ const LoginScreen = () => {
     try {
       const data = await login(email, password);
       Alert.alert("Éxito", `Bienvenido ${data.usuario.nombre}`);
-      navigation.navigate("VincularMaceta");
+      navigation.navigate("DashMoni");
     } catch (error: any) {
       Alert.alert("Error", error.response?.data?.message || "Algo salió mal");
     }

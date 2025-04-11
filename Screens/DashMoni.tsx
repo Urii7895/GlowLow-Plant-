@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,28 +8,31 @@ import {
   ActivityIndicator,
   ScrollView,
   Animated,
+  Alert
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
 import { Ionicons } from "@expo/vector-icons";
-import { getSensorData, getInformacionPlanta, getRachaByUser } from "../api";
+import { getSensorData, getInformacionPlanta } from "../api";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "DashMoni">;
 
+interface SensorData {
+  luz?: number;
+  humedadSuelo?: number;
+  temperaturaSuelo?: number;
+  lastUpdate?: string;
+}
+
 const DashMoni: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const [activeTab, setActiveTab] = useState<
-    "Monitoreo" | "Descripción" | "Racha"
-  >("Monitoreo");
-  const [sensorData, setSensorData] = useState<{
-    luz?: number;
-    humedadSuelo?: number;
-    lastUpdate?: string;
-  }>({});
+  const [activeTab, setActiveTab] = useState<"Monitoreo" | "Descripción" | "Racha">("Monitoreo");
+  const [sensorData, setSensorData] = useState<SensorData>({});
   const [loading, setLoading] = useState(true);
-  const fadeAnim = useState(new Animated.Value(0))[0];
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [cardsRefreshing, setCardsRefreshing] = useState(false);
 
   const [rachaCuidado, setRachaCuidado] = useState({
     diasConsecutivos: 0,
@@ -37,43 +40,53 @@ const DashMoni: React.FC = () => {
     consejo: "Entra cada día para aumentar tu racha.",
   });
 
-  const [infoPlanta, setInfoPlanta] = useState<{
-    Descripcion?: string;
-    Nombre_Cientifico?: string;
-    Familia?: string;
-    Reino?: string;
-    Clase?: string;
-    Diversidad?: string;
-  }>({});
+  const [infoPlanta, setInfoPlanta] = useState({
+    Descripcion: "",
+    Nombre_Cientifico: "",
+    Familia: "",
+    Reino: "",
+    Clase: "",
+    Diversidad: ""
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getSensorData();
-        console.log("Datos recibidos:", data);
+  const fetchSensorData = useCallback(async () => {
+    try {
+      setCardsRefreshing(true);
+      const data = await getSensorData();
+      console.log("Datos recibidos del backend:", data);
 
-        const luzSensor = data.find((sensor: any) => sensor._id === "Luz ambiente");
-        const humedadSensor = data.find(
-          (sensor: any) => sensor._id === "Humedad del suelo"
+      const findSensor = (name: string) => 
+        data.find((s: any) => 
+          s.nombre?.toLowerCase().includes(name.toLowerCase()) ||
+          s._id?.toLowerCase().includes(name.toLowerCase())
         );
 
-        setSensorData({
-          luz: luzSensor ? luzSensor.valor : undefined,
-          humedadSuelo: humedadSensor ? humedadSensor.valor : undefined,
-          lastUpdate: new Date().toLocaleTimeString()
-        });
-      } catch (error) {
-        console.error("Error obteniendo datos:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const luzSensor = findSensor("luz");
+      const humedadSensor = findSensor("humedad");
+      const tempSensor = findSensor("temperatura");
 
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
+      const newData: SensorData = {
+        luz: luzSensor?.valor !== undefined ? Number(luzSensor.valor) : undefined,
+        humedadSuelo: humedadSensor?.valor !== undefined ? Number(humedadSensor.valor) : undefined,
+        temperaturaSuelo: tempSensor?.valor !== undefined ? Number(tempSensor.valor) : undefined,
+        lastUpdate: new Date().toLocaleTimeString()
+      };
 
-    return () => clearInterval(interval);
+      setSensorData(prev => ({ ...prev, ...newData }));
+    } catch (error) {
+      console.error("Error obteniendo datos:", error);
+      Alert.alert("Error", "No se pudieron obtener los datos de los sensores");
+    } finally {
+      setLoading(false);
+      setCardsRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchSensorData();
+    const interval = setInterval(fetchSensorData, 15000);
+    return () => clearInterval(interval);
+  }, [fetchSensorData]);
 
   useEffect(() => {
     const fetchInfoPlanta = async () => {
@@ -151,6 +164,68 @@ const DashMoni: React.FC = () => {
     actualizarRacha();
   }, []);
 
+  const renderSensorCards = () => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={styles.horizontalCardContainer}>
+        <View style={styles.rachaCard}>
+          <Ionicons name="sunny" size={30} color="#FFD700" />
+          <Text style={styles.rachaCardText}>Luz Ambiente</Text>
+          <Text style={styles.rachaCardValue}>
+            {sensorData.luz !== undefined ? `${sensorData.luz} lux` : "No disponible"}
+          </Text>
+          <Text style={styles.sensorStatus}>
+            {sensorData.luz !== undefined 
+              ? sensorData.luz > 2000 
+                ? "🌞 Intensa" 
+                : sensorData.luz > 1000 
+                  ? "🌤️ Moderada" 
+                  : "🌥️ Baja"
+              : ""}
+          </Text>
+        </View>
+
+        <View style={styles.rachaCard}>
+          <Ionicons name="partly-sunny" size={30} color="#87CEEB" />
+          <Text style={styles.rachaCardText}>Día/Noche</Text>
+          <Text style={styles.rachaCardValue}>
+            {sensorData.luz !== undefined
+              ? sensorData.luz > 1000
+                ? "☀️ Día"
+                : "🌙 Noche"
+              : "No disponible"}
+          </Text>
+        </View>
+
+   
+
+        <View style={styles.rachaCard}>
+        <Ionicons name="water" size={30} color="#1E90FF" />
+          <Text style={styles.rachaCardText}>Humedad Suelo</Text>
+          <Text style={styles.rachaCardValue}>
+            {sensorData.temperaturaSuelo !== undefined ? `${sensorData.temperaturaSuelo}°C` : "No disponible"}
+          </Text>
+          <Text style={styles.sensorStatus}>
+            {sensorData.temperaturaSuelo !== undefined
+              ? sensorData.temperaturaSuelo > 4000
+                ? "💦 Muy húmedo"
+                : sensorData.temperaturaSuelo >  3000
+                    ? "💧 Óptimo"
+                  : "🏜️ Seco"
+              : ""}
+          </Text>
+        </View>
+
+        <View style={styles.rachaCard}>
+          <Ionicons name="time-outline" size={30} color="#9B59B6" />
+          <Text style={styles.rachaCardText}>Última Lectura</Text>
+          <Text style={styles.rachaCardValue}>
+            {sensorData.lastUpdate || "No disponible"}
+          </Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -185,63 +260,12 @@ const DashMoni: React.FC = () => {
           {loading ? (
             <ActivityIndicator size="large" color="#008060" />
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.horizontalCardContainer}>
-                <View style={styles.rachaCard}>
-                  <Ionicons name="sunny" size={30} color="#FFD700" />
-                  <Text style={styles.rachaCardText}>Luz Ambiente</Text>
-                  <Text style={styles.rachaCardValue}>
-                    {sensorData.luz !== undefined ? `${sensorData.luz} lux` : "No disponible"}
-                  </Text>
-                  <Text style={styles.sensorStatus}>
-                    {sensorData.luz !== undefined 
-                      ? sensorData.luz > 2000 
-                        ? "🌞 Intensa" 
-                        : sensorData.luz > 1000 
-                          ? "🌤️ Moderada" 
-                          : "🌥️ Baja"
-                      : ""}
-                  </Text>
-                </View>
-
-                <View style={styles.rachaCard}>
-                  <Ionicons name="partly-sunny" size={30} color="#87CEEB" />
-                  <Text style={styles.rachaCardText}>Día/Noche</Text>
-                  <Text style={styles.rachaCardValue}>
-                    {sensorData.luz !== undefined
-                      ? sensorData.luz > 1000
-                        ? "☀️ Día"
-                        : "🌙 Noche"
-                      : "No disponible"}
-                  </Text>
-                </View>
-
-                <View style={styles.rachaCard}>
-                  <Ionicons name="thermometer" size={30} color="#FF6347" />
-                  <Text style={styles.rachaCardText}>Humedad Suelo</Text>
-                  <Text style={styles.rachaCardValue}>
-                    {sensorData.humedadSuelo !== undefined ? `${sensorData.humedadSuelo}%` : "No disponible"}
-                  </Text>
-                  <Text style={styles.sensorStatus}>
-                    {sensorData.humedadSuelo !== undefined
-                      ? sensorData.humedadSuelo > 4000
-                        ? "💦 Muy húmedo"
-                        : sensorData.humedadSuelo > 3000
-                          ? "💧 Óptimo"
-                          : "🏜️ Seco"
-                      : ""}
-                  </Text>
-                </View>
-
-                <View style={styles.rachaCard}>
-                  <Ionicons name="time-outline" size={30} color="#9B59B6" />
-                  <Text style={styles.rachaCardText}>Última Lectura</Text>
-                  <Text style={styles.rachaCardValue}>
-                    {sensorData.lastUpdate || "No disponible"}
-                  </Text>
-                </View>
-              </View>
-            </ScrollView>
+            <>
+              {renderSensorCards()}
+              {cardsRefreshing && (
+                <ActivityIndicator size="small" color="#008060" style={styles.refreshIndicator} />
+              )}
+            </>
           )}
         </Animated.View>
       )}
@@ -480,6 +504,9 @@ const styles = StyleSheet.create({
     top: 20,
     right: 20,
     backgroundColor: "transparent",
+  },
+  refreshIndicator: {
+    marginTop: 10,
   },
 });
 

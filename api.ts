@@ -2,8 +2,13 @@ import axios from "axios";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // URL base del backend
-const API_URL = "https://backglow.onrender.com/api";
-//const API_URL = "http://192.168.1.146:5000/api";
+//const API_URL = "https://backglow.onrender.com/api";
+const API_URL = "http://192.168.1.146:5000/api";
+
+
+//const API_URL = "http://172.20.10.2:5000/api";
+
+
 
 // Definición de interfaces
 interface LoginResponse {
@@ -80,14 +85,27 @@ export const register = async (
 
 export const getSensorData = async (): Promise<any[]> => {
   try {
-    const response = await fetch(`${API_URL}/Sensores/ultimos`);
-    if (!response.ok) {
-      throw new Error("Error obteniendo datos de sensores");
+    const response = await axios.get(`${API_URL}/Sensores/ultimos`);
+    
+    console.log("Datos crudos recibidos:", response.data); // Para diagnóstico
+    
+    if (!response.data || !Array.isArray(response.data)) {
+      throw new Error("Formato de datos incorrecto");
     }
-    return await response.json();
+
+    // Transforma los datos al formato esperado por el frontend
+    const formattedData = response.data.map((sensor: any) => {
+      return {
+        _id: sensor.nombre || sensor._id, // Asegura compatibilidad
+        valor: sensor.valor,
+        unidad: sensor.unidad || "" // Valor por defecto
+      };
+    });
+
+    return formattedData;
   } catch (error) {
-    console.error("Error obteniendo datos de sensores:", error);
-    return [];
+    console.error("Error en getSensorData:", error);
+    throw error; // Re-lanzar el error para manejarlo en el componente
   }
 };
 
